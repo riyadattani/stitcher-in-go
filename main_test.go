@@ -33,17 +33,13 @@ func TestStitcher(t *testing.T) {
 			}
 		})
 	}
-
-
 }
 
 func Stitcher(readers ...io.Reader) string {
 	result := bytes.Buffer{}
 
 	for _, reader := range readers {
-		data, _ := io.ReadAll(reader)
-		result.Write(data)
-
+		io.Copy(&result, reader)
 	}
 	return result.String()
 }
