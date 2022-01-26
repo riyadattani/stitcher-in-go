@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestWebsiteStitcher(t *testing.T) {
@@ -74,21 +74,29 @@ func TestWebsiteStitcher(t *testing.T) {
 			t.Error("expected an error, but didnt get one")
 		}
 	})
-
 }
 
-func WebsiteStitcher(urls ...string) (string, error) {
-	var resps []io.Reader
+//Before
+//BenchmarkWebsiteStitcher-12    	       5	 201996564 ns/op
+//After
+//BenchmarkWebsiteStitcher-12    	      10	 100944144 ns/op
 
-	for _, url := range urls {
-		resp, err := http.Get(url)
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
+func BenchmarkWebsiteStitcher(b *testing.B) {
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Millisecond * 100)
+		fmt.Fprint(w, "blah")
+	}))
+	defer server1.Close()
 
-		resps = append(resps, resp.Body)
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Millisecond * 100)
+		fmt.Fprint(w, "blah blah")
+	}))
+	defer server2.Close()
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		WebsiteStitcher(server1.URL, server2.URL)
 	}
-
-	return Stitcher(resps...), nil
 }
