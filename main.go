@@ -1,7 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"log"
+	"net/http"
+)
 
 func main() {
-	fmt.Println("sup can you see this?")
+	handler := WebsiteStitcherServer(WebsiteStitcher)
+	log.Fatal(http.ListenAndServe(":2000", handler))
 }

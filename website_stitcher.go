@@ -1,11 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"sort"
 	"sync"
 )
+
+type WebsiteStitcherServer func(urls ...string) (string, error)
+
+func (ws WebsiteStitcherServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	urls := r.URL.Query()["url"]
+	results, _ := ws(urls...)
+	fmt.Fprint(w, results)
+}
 
 func WebsiteStitcher(urls ...string) (string, error) {
 	type getResult struct {
@@ -46,7 +55,6 @@ func WebsiteStitcher(urls ...string) (string, error) {
 	}
 
 	// sort them
-	// google how to sort a slice
 	sort.SliceStable(results, func(i, j int) bool {
 		return results[i].index < results[j].index
 	})
