@@ -22,38 +22,73 @@ func TestWebsiteStitcher(t *testing.T) {
 		expected3 := "pair programming"
 
 		server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, expected1)
+			fmt.Fprint(w, expected1)
 		}))
 		defer server1.Close()
 
 		server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, expected2)
+			fmt.Fprint(w, expected2)
 		}))
 		defer server2.Close()
 
 		server3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, expected3)
+			fmt.Fprint(w, expected3)
 		}))
 		defer server3.Close()
 
-		got := WebsiteStitcher(server1.URL, server2.URL, server3.URL)
+		got, _ := WebsiteStitcher(server1.URL, server2.URL, server3.URL)
 		want := expected1 + expected2 + expected3
 
 		if got != want {
 			t.Errorf("got %q, want %q", got, want)
 		}
 	})
+
+	t.Run("it returns an error, if one of the URLs is nonsense", func(t *testing.T) {
+		server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, "Look at this shit.")
+		}))
+		defer server1.Close()
+
+		_, err := WebsiteStitcher(server1.URL, "lmao")
+
+		if err == nil {
+			t.Error("expected an error, but didnt get one")
+		}
+	})
+
+	t.Run("it returns an error, if one of the URLs doesnt return a response", func(t *testing.T) {
+		server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, "Look at this shit.")
+		}))
+		defer server1.Close()
+
+		failingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			panic("wtf")
+		}))
+		defer failingServer.Close()
+
+		_, err := WebsiteStitcher(server1.URL, failingServer.URL)
+
+		if err == nil {
+			t.Error("expected an error, but didnt get one")
+		}
+	})
+
 }
 
-func WebsiteStitcher(urls ...string) string {
+func WebsiteStitcher(urls ...string) (string, error) {
 	var resps []io.Reader
 
 	for _, url := range urls {
-		resp, _ := http.Get(url)
+		resp, err := http.Get(url)
+		if err != nil {
+			return "", err
+		}
 		defer resp.Body.Close()
 
 		resps = append(resps, resp.Body)
 	}
 
-	return Stitcher(resps...)
+	return Stitcher(resps...), nil
 }
