@@ -1,51 +1,46 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
-	"strings"
+	"net/http/httptest"
 	"testing"
 )
 
 func TestWebsiteStitcher(t *testing.T) {
 	/*
-	 Why does testing against real URLs suck?
-	1.Slow
-	2.Unreliable, site could be down, the site's content could change
-	3. It's hard to write the test. We have to test string contains, which is naff
-	 */
+		 Why does testing against real URLs suck?
+		1.Slow
+		2.Unreliable, site could be down, the site's content could change
+		3. It's hard to write the test. We have to test string contains, which is naff
+	*/
+
 	t.Run("given some urls, when we stitch them together, I expect to see the response bodies of all urls", func(t *testing.T) {
-		url1 := "https://motherfuckingwebsite.com"
-		url2 := "https://quii.dev"
+		expected1 := "Look at this shit."
+		expected2 := "Chris"
+		expected3 := "pair programming"
 
-		got := WebsiteStitcher(url1, url2)
+		server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, expected1)
+		}))
+		defer server1.Close()
 
-		if !strings.Contains(got, "Look at this shit.") {
-			t.Error("it didnt have the first websites body")
-		}
+		server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, expected2)
+		}))
+		defer server2.Close()
 
-		if !strings.Contains(got, "Chris") {
-			t.Error("it doesnt have the cj stuff")
-		}
-	})
+		server3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, expected3)
+		}))
+		defer server3.Close()
 
-	t.Run("given some more urls, when we stitch them together, I expect to see the response bodies of all urls", func(t *testing.T) {
-		url1 := "https://motherfuckingwebsite.com"
-		url2 := "https://quii.dev"
-		url3 := "https://www.riyadattani.com"
+		got := WebsiteStitcher(server1.URL, server2.URL, server3.URL)
+		want := expected1 + expected2 + expected3
 
-		got := WebsiteStitcher(url1, url2, url3)
-
-		if !strings.Contains(got, "Look at this shit.") {
-			t.Error("it didnt have the first websites body")
-		}
-
-		if !strings.Contains(got, "Chris") {
-			t.Error("it doesnt have the cj stuff")
-		}
-
-		if !strings.Contains(got, "pair programming") {
-			t.Error("it doesnt have the riya stuff")
+		if got != want {
+			t.Errorf("got %q, want %q", got, want)
 		}
 	})
 }
@@ -60,7 +55,5 @@ func WebsiteStitcher(urls ...string) string {
 		resps = append(resps, resp.Body)
 	}
 
-	stitched := Stitcher(resps...)
-
-	return stitched
+	return Stitcher(resps...)
 }
