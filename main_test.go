@@ -8,29 +8,33 @@ import (
 )
 
 func TestStitcher(t *testing.T) {
-	var(
-		a = "Salt"
-		b = "Pepper"
-		c = "Pay"
-	)
-	t.Run("given two io.Readers, when we stitch it up, we expect a joint string", func(t *testing.T) {
-		got := Stitcher(strings.NewReader(a), strings.NewReader(c))
-		want := "SaltPay"
+	tests := []struct{
+		description string
+		inputs []io.Reader
+		expected string
+	}{
+		{
+			description: "stitching multiple readers",
+			inputs:   []io.Reader{strings.NewReader("Salt"), strings.NewReader("Pay")},
+			expected: "SaltPay",
+		},
+		{
+			description: "stitching one reader",
+			inputs:   []io.Reader{strings.NewReader("Salt")},
+			expected: "Salt",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.description, func(t *testing.T) {
+			got := Stitcher(tc.inputs...)
+			want := tc.expected
+			if got != want {
+				t.Errorf("got %q, want %q", got, want)
+			}
+		})
+	}
 
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
-	})
 
-
-	t.Run("given 3 io.Readers, when we stitch it up, we expect a joint string", func(t *testing.T) {
-		got := Stitcher(strings.NewReader(a), strings.NewReader(b), strings.NewReader(c))
-		want := "SaltPepperPay"
-
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
-	})
 }
 
 func Stitcher(readers ...io.Reader) string {
