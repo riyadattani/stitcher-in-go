@@ -1,17 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"strings"
 	"testing"
 )
 
 func TestStitcher(t *testing.T) {
+	var(
+		a = "Salt"
+		b = "Pepper"
+		c = "Pay"
+	)
 	t.Run("given two io.Readers, when we stitch it up, we expect a joint string", func(t *testing.T) {
-		a := strings.NewReader("Salt")
-		b := strings.NewReader("Pay")
-
-		got := Stitcher(a, b)
+		got := Stitcher(strings.NewReader(a), strings.NewReader(c))
 		want := "SaltPay"
 
 		if got != want {
@@ -19,12 +22,10 @@ func TestStitcher(t *testing.T) {
 		}
 	})
 
-	t.Run("given two other io.Readers, when we stitch it up, we expect a joint string", func(t *testing.T) {
-		a := strings.NewReader("Salt")
-		b := strings.NewReader("Lame")
 
-		got := Stitcher(a, b)
-		want := "SaltLame"
+	t.Run("given 3 io.Readers, when we stitch it up, we expect a joint string", func(t *testing.T) {
+		got := Stitcher(strings.NewReader(a), strings.NewReader(b), strings.NewReader(c))
+		want := "SaltPepperPay"
 
 		if got != want {
 			t.Errorf("got %q, want %q", got, want)
@@ -32,9 +33,13 @@ func TestStitcher(t *testing.T) {
 	})
 }
 
-func Stitcher(a, b io.Reader) string {
-	aData, _ := io.ReadAll(a)
-	bData, _ := io.ReadAll(b)
+func Stitcher(readers ...io.Reader) string {
+	result := bytes.Buffer{}
 
-	return string(aData) + string(bData)
+	for _, reader := range readers {
+		data, _ := io.ReadAll(reader)
+		result.Write(data)
+
+	}
+	return result.String()
 }
